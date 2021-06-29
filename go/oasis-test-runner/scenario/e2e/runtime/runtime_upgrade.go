@@ -66,6 +66,8 @@ func (sc *runtimeUpgradeImpl) Fixture() (*oasis.NetworkFixture, error) {
 	}
 	runtimeFix.Binaries = newRuntimeBinaries
 
+	f.Network.IAS.UseRegistry = true
+
 	// The upgraded runtime will be registered later.
 	runtimeFix.ExcludeFromGenesis = true
 	newComputeIndex := len(f.Runtimes)

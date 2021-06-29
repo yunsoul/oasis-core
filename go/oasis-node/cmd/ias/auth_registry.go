@@ -113,11 +113,14 @@ RedialLoop:
 		}
 		defer sub.Close()
 
+		auth.logger.Error("watching runtime updates")
+
 		// Watch runtime added events in the registry.
 		for {
 			var runtime *registry.Runtime
 			select {
 			case runtime = <-ch:
+				auth.logger.Error("got runtime update", "runtime", runtime)
 				if runtime == nil {
 					auth.logger.Warn("data source stream closed by peer, re-dialing")
 
@@ -129,6 +132,7 @@ RedialLoop:
 				return
 			}
 
+			auth.logger.Error("adding runtime", "runtime", runtime, "version", runtime.Version)
 			var n int
 			n, err = auth.enclaves.addRuntime(runtime)
 			if err != nil {
@@ -138,6 +142,7 @@ RedialLoop:
 				)
 				continue
 			}
+			auth.logger.Error("added runtime")
 			if waitRuntimes > 0 && n == waitRuntimes {
 				auth.logger.Info("sufficient runtimes received, starting verification")
 				auth.initOnce.Do(func() {

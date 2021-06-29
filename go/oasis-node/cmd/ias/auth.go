@@ -6,6 +6,7 @@ import (
 
 	"github.com/oasisprotocol/oasis-core/go/common"
 	"github.com/oasisprotocol/oasis-core/go/common/cbor"
+	"github.com/oasisprotocol/oasis-core/go/common/logging"
 	"github.com/oasisprotocol/oasis-core/go/common/node"
 	"github.com/oasisprotocol/oasis-core/go/common/sgx"
 	cmnIAS "github.com/oasisprotocol/oasis-core/go/common/sgx/ias"
@@ -15,6 +16,8 @@ import (
 
 type enclaveStore struct {
 	sync.RWMutex
+
+	logger *logging.Logger
 
 	enclaves map[common.Namespace][]sgx.EnclaveIdentity
 }
@@ -51,6 +54,7 @@ func (st *enclaveStore) addRuntime(runtime *registry.Runtime) (int, error) {
 	st.Lock()
 	defer st.Unlock()
 
+	logger.Error("adding runtime", "runtime", runtime)
 	if runtime.TEEHardware != node.TEEHardwareIntelSGX {
 		return len(st.enclaves), nil
 	}
@@ -60,6 +64,8 @@ func (st *enclaveStore) addRuntime(runtime *registry.Runtime) (int, error) {
 		return len(st.enclaves), err
 	}
 
+	logger.Error("updated enclaves", "encalves", cs.Enclaves)
+
 	st.enclaves[runtime.ID] = cs.Enclaves
 
 	return len(st.enclaves), nil
@@ -67,6 +73,7 @@ func (st *enclaveStore) addRuntime(runtime *registry.Runtime) (int, error) {
 
 func newEnclaveStore() *enclaveStore {
 	return &enclaveStore{
+		logger:   logging.GetLogger("ias/enclave-store"),
 		enclaves: make(map[common.Namespace][]sgx.EnclaveIdentity),
 	}
 }
