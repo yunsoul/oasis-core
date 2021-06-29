@@ -16,6 +16,7 @@ import (
 	"github.com/oasisprotocol/oasis-core/go/common/identity"
 	"github.com/oasisprotocol/oasis-core/go/common/logging"
 	"github.com/oasisprotocol/oasis-core/go/common/node"
+	"github.com/oasisprotocol/oasis-core/go/common/p2p"
 	"github.com/oasisprotocol/oasis-core/go/common/pubsub"
 	consensus "github.com/oasisprotocol/oasis-core/go/consensus/api"
 	ias "github.com/oasisprotocol/oasis-core/go/ias/api"
@@ -131,6 +132,7 @@ type runtime struct { // nolint: maligned
 	consensus    consensus.Backend
 	storage      storageAPI.Backend
 	localStorage localstorage.LocalStorage
+	p2p          p2p.P2P
 
 	history        history.History
 	tagIndexer     *tagindexer.Service
@@ -395,7 +397,7 @@ func (r *runtime) finishInitialization(ctx context.Context, ident *identity.Iden
 	defer r.Unlock()
 
 	if r.storage == nil {
-		storageBackend, err := client.NewForPublicStorage(ctx, r.id, ident, r.consensus, r)
+		storageBackend, err := client.NewForPublicStorage(ctx, r.id, ident, r.consensus, r, r.p2p)
 		if err != nil {
 			return fmt.Errorf("runtime/registry: cannot create storage for runtime %s: %w", r.id, err)
 		}
@@ -420,6 +422,7 @@ type runtimeRegistry struct {
 
 	consensus consensus.Backend
 	identity  *identity.Identity
+	p2p       p2p.P2P
 
 	runtimes map[common.Namespace]*runtime
 }
@@ -447,7 +450,7 @@ func (r *runtimeRegistry) Runtimes() []Runtime {
 }
 
 func (r *runtimeRegistry) NewUnmanagedRuntime(ctx context.Context, runtimeID common.Namespace) (Runtime, error) {
-	return newRuntime(ctx, runtimeID, r.cfg, r.consensus, r.logger)
+	return newRuntime(ctx, runtimeID, r.cfg, r.consensus, r.p2p, r.logger)
 }
 
 func (r *runtimeRegistry) AddRoles(roles node.RolesMask, runtimeID *common.Namespace) error {
@@ -524,7 +527,7 @@ func (r *runtimeRegistry) addSupportedRuntime(ctx context.Context, id common.Nam
 		return err
 	}
 
-	rt, err := newRuntime(ctx, id, r.cfg, r.consensus, r.logger)
+	rt, err := newRuntime(ctx, id, r.cfg, r.consensus, r.p2p, r.logger)
 	if err != nil {
 		return err
 	}
@@ -580,6 +583,7 @@ func newRuntime(
 	id common.Namespace,
 	cfg *RuntimeConfig,
 	consensus consensus.Backend,
+	p2p p2p.P2P,
 	logger *logging.Logger,
 ) (*runtime, error) {
 	watchCtx, cancel := context.WithCancel(ctx)
@@ -587,6 +591,7 @@ func newRuntime(
 	rt := &runtime{
 		id:                         id,
 		consensus:                  consensus,
+		p2p:                        p2p,
 		cancelCtx:                  cancel,
 		registryDescriptorCh:       make(chan struct{}),
 		registryDescriptorNotifier: pubsub.NewBroker(true),
@@ -606,7 +611,14 @@ func newRuntime(
 }
 
 // New creates a new runtime registry.
-func New(ctx context.Context, dataDir string, consensus consensus.Backend, identity *identity.Identity, ias ias.Endpoint) (Registry, error) {
+func New(
+	ctx context.Context,
+	dataDir string,
+	consensus consensus.Backend,
+	identity *identity.Identity,
+	ias ias.Endpoint,
+	p2p p2p.P2P,
+) (Registry, error) {
 	cfg, err := newConfig(consensus, ias)
 	if err != nil {
 		return nil, err
@@ -618,6 +630,7 @@ func New(ctx context.Context, dataDir string, consensus consensus.Backend, ident
 		cfg:       cfg,
 		consensus: consensus,
 		identity:  identity,
+		p2p:       p2p,
 		runtimes:  make(map[common.Namespace]*runtime),
 	}
 

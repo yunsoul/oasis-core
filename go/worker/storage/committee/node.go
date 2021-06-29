@@ -270,6 +270,7 @@ func NewNode(
 	storageNodesGrpc, err := grpc.NewNodesClient(
 		n.ctx,
 		n.storageNodes,
+		n.commonNode.P2P,
 		grpc.WithClientAuthentication(n.commonNode.Identity),
 	)
 	if err != nil {

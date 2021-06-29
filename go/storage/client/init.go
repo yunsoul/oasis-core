@@ -9,6 +9,7 @@ import (
 	"github.com/oasisprotocol/oasis-core/go/common/identity"
 	"github.com/oasisprotocol/oasis-core/go/common/logging"
 	"github.com/oasisprotocol/oasis-core/go/common/node"
+	"github.com/oasisprotocol/oasis-core/go/common/p2p"
 	consensus "github.com/oasisprotocol/oasis-core/go/consensus/api"
 	registry "github.com/oasisprotocol/oasis-core/go/registry/api"
 	"github.com/oasisprotocol/oasis-core/go/runtime/nodes"
@@ -48,9 +49,10 @@ func NewForNodes(
 	ident *identity.Identity,
 	nodes nodes.NodeDescriptorLookup,
 	runtime registry.RuntimeDescriptorProvider,
+	p2p p2p.P2P,
 	opts ...Option,
 ) (api.Backend, error) {
-	client, err := grpc.NewNodesClient(ctx, nodes, grpc.WithClientAuthentication(ident))
+	client, err := grpc.NewNodesClient(ctx, nodes, p2p, grpc.WithClientAuthentication(ident))
 	if err != nil {
 		return nil, fmt.Errorf("storage/client: failed to create committee client: %w", err)
 	}
@@ -65,6 +67,7 @@ func NewForPublicStorage(
 	ident *identity.Identity,
 	consensus consensus.Backend,
 	runtime registry.RuntimeDescriptorProvider,
+	p2p p2p.P2P,
 	opts ...Option,
 ) (api.Backend, error) {
 	nl, err := nodes.NewRuntimeNodeLookup(
@@ -85,7 +88,7 @@ func NewForPublicStorage(
 		),
 	)
 
-	return NewForNodes(ctx, ident, publicStorageNl, runtime, opts...)
+	return NewForNodes(ctx, ident, publicStorageNl, runtime, p2p, opts...)
 }
 
 // NewStatic creates a new storage client that only follows a specific storage node.
@@ -96,6 +99,7 @@ func NewStatic(
 	ident *identity.Identity,
 	consensus consensus.Backend,
 	nodeID signature.PublicKey,
+	p2p p2p.P2P,
 	opts ...Option,
 ) (api.Backend, error) {
 	nw, err := nodes.NewVersionedNodeDescriptorWatcher(ctx, consensus)
@@ -103,7 +107,7 @@ func NewStatic(
 		return nil, fmt.Errorf("storage/client: failed to create node descriptor watcher: %w", err)
 	}
 
-	client, err := NewForNodes(ctx, ident, nw, nil, opts...)
+	client, err := NewForNodes(ctx, ident, nw, nil, p2p, opts...)
 	if err != nil {
 		return nil, err
 	}

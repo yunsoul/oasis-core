@@ -442,11 +442,17 @@ type ServerConfig struct { // nolint: maligned
 	ClientCommonName string
 	// CustomOptions is an array of extra options for the grpc server.
 	CustomOptions []grpc.ServerOption
+
+	// XXX
+	ListenerFactory func() (net.Listener, error)
 }
 
 type listenerConfig struct {
 	network string
 	address string
+
+	// XXX
+	factory func() (net.Listener, error)
 }
 
 // Start starts the Server.
@@ -468,14 +474,23 @@ func (s *Server) Start() error {
 	for _, v := range s.listenerCfgs {
 		cfg := v
 
-		ln, err := net.Listen(cfg.network, cfg.address)
-		if err != nil {
-			s.Logger.Error("error starting gRPC server",
-				"error", err,
-			)
-			return err
+		var (
+			ln  net.Listener
+			err error
+		)
+
+		if cfg.factory != nil {
+			ln, err = cfg.factory()
+		} else {
+			ln, err = net.Listen(cfg.network, cfg.address)
+			if err != nil {
+				s.Logger.Error("error starting gRPC server",
+					"error", err,
+				)
+				return err
+			}
+			s.Logger.Info("gRPC server started", "network", cfg.network, "address", cfg.address)
 		}
-		s.Logger.Info("gRPC server started", "network", cfg.network, "address", cfg.address)
 
 		s.startedListeners = append(s.startedListeners, ln)
 
@@ -549,7 +564,12 @@ func NewServer(config *ServerConfig) (*Server, error) {
 	var clientAuthType tls.ClientAuthType
 	unsafeDebug := false
 
-	if config.Path == "" {
+	if config.ListenerFactory != nil {
+		// XXX
+		cfg := listenerConfig{factory: config.ListenerFactory}
+		listenerParams = []listenerConfig{cfg}
+		clientAuthType = tls.RequestClientCert
+	} else if config.Path == "" {
 		// Public TCP server.
 		cfg := listenerConfig{
 			network: "tcp",

@@ -3,12 +3,14 @@ package common
 import (
 	"context"
 	"fmt"
+	"net"
 
 	"github.com/oasisprotocol/oasis-core/go/common"
 	"github.com/oasisprotocol/oasis-core/go/common/grpc"
 	policyAPI "github.com/oasisprotocol/oasis-core/go/common/grpc/policy/api"
 	"github.com/oasisprotocol/oasis-core/go/common/identity"
 	"github.com/oasisprotocol/oasis-core/go/common/logging"
+	cmnP2P "github.com/oasisprotocol/oasis-core/go/common/p2p"
 	consensus "github.com/oasisprotocol/oasis-core/go/consensus/api"
 	control "github.com/oasisprotocol/oasis-core/go/control/api"
 	genesis "github.com/oasisprotocol/oasis-core/go/genesis/api"
@@ -19,6 +21,8 @@ import (
 	"github.com/oasisprotocol/oasis-core/go/worker/common/committee"
 	"github.com/oasisprotocol/oasis-core/go/worker/common/p2p"
 )
+
+// TODO: start using the P2P interface and rename cmnP2P -> p2p
 
 // Worker is a garbage bag with lower level services and common runtime objects.
 type Worker struct {
@@ -282,9 +286,12 @@ func New(
 
 	// Create externally-accessible gRPC server.
 	serverConfig := &grpc.ServerConfig{
-		Name:     "external",
-		Port:     cfg.ClientPort,
+		Name: "external",
+		// Port:     cfg.ClientPort,
 		Identity: identity,
+		ListenerFactory: func() (net.Listener, error) {
+			return p2p.Listen(cmnP2P.CommitteeProtocolID)
+		},
 	}
 	grpc, err := grpc.NewServer(serverConfig)
 	if err != nil {

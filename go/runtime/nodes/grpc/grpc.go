@@ -7,6 +7,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"math/rand"
+	"net"
 	"sync"
 	"time"
 
@@ -21,6 +22,7 @@ import (
 	"github.com/oasisprotocol/oasis-core/go/common/identity"
 	"github.com/oasisprotocol/oasis-core/go/common/logging"
 	"github.com/oasisprotocol/oasis-core/go/common/node"
+	"github.com/oasisprotocol/oasis-core/go/common/p2p"
 	"github.com/oasisprotocol/oasis-core/go/common/pubsub"
 	"github.com/oasisprotocol/oasis-core/go/runtime/nodes"
 )
@@ -219,6 +221,7 @@ type nodesClient struct {
 	sync.RWMutex
 
 	nw       nodes.NodeDescriptorLookup
+	p2p      p2p.P2P
 	conns    map[signature.PublicKey]*clientConnState
 	version  int64
 	notifier *pubsub.Broker
@@ -392,6 +395,11 @@ func (nc *nodesClient) updateConnectionLocked(n *node.Node) error {
 					MinConnectTimeout: grpcMinConnectTimeout,
 				},
 			),
+			grpc.WithContextDialer(func(ctx context.Context, address string) (net.Conn, error) {
+				// XXX: this probably means we can get rid of a lot of this update crap
+				nc.logger.Debug("dialing p2p peer", "address", address, "node", n)
+				return nc.p2p.Dial(ctx, p2p.CommitteeProtocolID, n)
+			}),
 		)
 		if err != nil {
 			nc.logger.Warn("failed to dial node",
@@ -595,7 +603,12 @@ func WithCloseDelay(delay time.Duration) Option {
 }
 
 // NewNodesClient creates a new nodes gRPC client.
-func NewNodesClient(ctx context.Context, nw nodes.NodeDescriptorLookup, options ...Option) (NodesClient, error) {
+func NewNodesClient(
+	ctx context.Context,
+	nw nodes.NodeDescriptorLookup,
+	p2p p2p.P2P,
+	options ...Option,
+) (NodesClient, error) {
 	ch, sub, err := nw.WatchNodeUpdates()
 	if err != nil {
 		return nil, fmt.Errorf("nodes/client: failed to watch for node updates: %w", err)
@@ -603,6 +616,7 @@ func NewNodesClient(ctx context.Context, nw nodes.NodeDescriptorLookup, options 
 
 	cc := &nodesClient{
 		nw:                  nw,
+		p2p:                 p2p,
 		conns:               make(map[signature.PublicKey]*clientConnState),
 		notifier:            pubsub.NewBroker(false),
 		initCh:              make(chan struct{}),

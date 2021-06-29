@@ -11,7 +11,9 @@ import (
 	"github.com/libp2p/go-libp2p"
 	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/libp2p/go-libp2p-core/transport"
+	gostream "github.com/libp2p/go-libp2p-gostream"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	pb "github.com/libp2p/go-libp2p-pubsub/pb"
 	"github.com/multiformats/go-multiaddr"
@@ -24,6 +26,7 @@ import (
 	"github.com/oasisprotocol/oasis-core/go/common/identity"
 	"github.com/oasisprotocol/oasis-core/go/common/logging"
 	"github.com/oasisprotocol/oasis-core/go/common/node"
+	"github.com/oasisprotocol/oasis-core/go/common/p2p"
 	"github.com/oasisprotocol/oasis-core/go/common/version"
 	consensus "github.com/oasisprotocol/oasis-core/go/consensus/api"
 	registryAPI "github.com/oasisprotocol/oasis-core/go/registry/api"
@@ -152,6 +155,27 @@ func (p *P2P) RegisterHandler(runtimeID common.Namespace, handler Handler) {
 		// Existing topic, add handler.
 		topic.handlers = append(topic.handlers, handler)
 	}
+}
+
+func (p *P2P) Listen(protocolID p2p.ProtocolID) (net.Listener, error) {
+	return gostream.Listen(p.host, protocol.ID(protocolID))
+}
+
+func (p *P2P) Dial(ctx context.Context, protocolID p2p.ProtocolID, node *node.Node) (net.Conn, error) {
+	if p == nil {
+		return nil, fmt.Errorf("p2p not available")
+	}
+
+	peerID, err := publicKeyToPeerID(node.P2P.ID)
+	if err != nil {
+		return nil, fmt.Errorf("worker/common/p2p: failed to determine peer ID for node %s: %w", node.ID, err)
+	}
+
+	if err = p.UpdateNode(node); err != nil {
+		return nil, fmt.Errorf("worker/common/p2p: failed to update peer: %w", err)
+	}
+
+	return gostream.Dial(ctx, p.host, peerID, protocol.ID(protocolID))
 }
 
 func (p *P2P) handleConnection(conn core.Conn) {

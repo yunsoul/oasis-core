@@ -570,6 +570,7 @@ func (g *Group) Start() error {
 		g.identity,
 		nodes.NewFilteredNodeLookup(g.nodes, nodes.TagFilter(TagForCommittee(scheduler.KindStorage))),
 		g.runtime,
+		g.p2p,
 		scOpts...,
 	)
 	if err != nil {

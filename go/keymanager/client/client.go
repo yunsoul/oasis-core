@@ -16,6 +16,7 @@ import (
 	"github.com/oasisprotocol/oasis-core/go/common"
 	"github.com/oasisprotocol/oasis-core/go/common/identity"
 	"github.com/oasisprotocol/oasis-core/go/common/logging"
+	"github.com/oasisprotocol/oasis-core/go/common/p2p"
 	consensus "github.com/oasisprotocol/oasis-core/go/consensus/api"
 	"github.com/oasisprotocol/oasis-core/go/keymanager/api"
 	registry "github.com/oasisprotocol/oasis-core/go/registry/api"
@@ -209,6 +210,7 @@ func New(
 	runtime runtimeRegistry.Runtime,
 	consensus consensus.Backend,
 	identity *identity.Identity,
+	p2p p2p.P2P,
 ) (*Client, error) {
 	committeeNodes, err := nodes.NewVersionedNodeDescriptorWatcher(ctx, consensus)
 	if err != nil {
@@ -219,7 +221,7 @@ func New(
 	if identity != nil {
 		opts = append(opts, grpc.WithClientAuthentication(identity))
 	}
-	committeeClient, err := grpc.NewNodesClient(ctx, committeeNodes, opts...)
+	committeeClient, err := grpc.NewNodesClient(ctx, committeeNodes, p2p, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("keymanager/client: failed to create committee client: %w", err)
 	}

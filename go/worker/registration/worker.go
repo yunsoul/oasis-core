@@ -761,10 +761,8 @@ func (w *Worker) registerNode(epoch beacon.EpochTime, hook RegisterNodeHook) err
 		nodeDesc.TLS.Addresses = addrs
 	}
 
-	// Add P2P Addresses if required.
-	if nodeDesc.HasRoles(registry.P2PAddressRequiredRoles) {
-		nodeDesc.P2P.Addresses = w.p2p.Addresses()
-	}
+	// Add P2P addresses.
+	nodeDesc.P2P.Addresses = w.p2p.Addresses()
 
 	nodeSigners := []signature.Signer{
 		w.registrationSigner,

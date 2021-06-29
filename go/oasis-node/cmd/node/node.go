@@ -278,7 +278,7 @@ func (n *Node) initRuntimeWorkers() error {
 	// it is not needed.
 	//
 	// Currently, only executor and runtime client need P2P transport.
-	if p2p.Enabled() || compute.Enabled() {
+	if p2p.Enabled() || compute.Enabled() || true {
 		p2pCtx, p2pSvc := service.NewContextCleanup(context.Background())
 		if genesisDoc.Registry.Parameters.DebugAllowUnroutableAddresses {
 			p2p.DebugForceAllowUnroutableAddresses()
@@ -300,7 +300,7 @@ func (n *Node) initRuntimeWorkers() error {
 	}
 
 	// Initialize the node's runtime registry.
-	n.RuntimeRegistry, err = runtimeRegistry.New(n.svcMgr.Ctx, cmdCommon.DataDir(), n.Consensus, n.Identity, n.IAS)
+	n.RuntimeRegistry, err = runtimeRegistry.New(n.svcMgr.Ctx, cmdCommon.DataDir(), n.Consensus, n.Identity, n.IAS, n.P2P)
 	if err != nil {
 		return err
 	}

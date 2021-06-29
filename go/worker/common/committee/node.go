@@ -100,6 +100,7 @@ type Node struct {
 	KeyManager       keymanagerApi.Backend
 	KeyManagerClient *keymanagerClient.Client
 	Consensus        consensus.Backend
+	P2P              *p2p.P2P
 	Group            *Group
 
 	ctx       context.Context
@@ -362,7 +363,7 @@ func (n *Node) worker() {
 	if rt.KeyManager != nil {
 		n.logger.Info("runtime indicates a key manager is required, waiting for it to be ready")
 
-		n.KeyManagerClient, err = keymanagerClient.New(n.ctx, n.Runtime, n.Consensus, n.Identity)
+		n.KeyManagerClient, err = keymanagerClient.New(n.ctx, n.Runtime, n.Consensus, n.Identity, n.P2P)
 		if err != nil {
 			n.logger.Error("failed to create key manager client",
 				"err", err,
@@ -504,6 +505,7 @@ func NewNode(
 		Identity:   identity,
 		KeyManager: keymanager,
 		Consensus:  consensus,
+		P2P:        p2p,
 		ctx:        ctx,
 		cancelCtx:  cancel,
 		stopCh:     make(chan struct{}),
