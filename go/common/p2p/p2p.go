@@ -5,19 +5,18 @@ import (
 	"context"
 	"net"
 
+	"github.com/libp2p/go-libp2p-core/protocol"
+
 	"github.com/oasisprotocol/oasis-core/go/common/node"
 	"github.com/oasisprotocol/oasis-core/go/common/version"
 )
 
-// ProtocolID is a protocol identifier.
-type ProtocolID string
-
 // XXX: is this the right place?
-var CommitteeProtocolID = ProtocolID("/oasis/committee/" + version.RuntimeCommitteeProtocol.String())
+var CommitteeProtocolID = protocol.ID("/oasis/committee/" + version.RuntimeCommitteeProtocol.String())
 
 // P2P is the p2p communication interface.
 type P2P interface {
-	Listen(protocolID ProtocolID) (net.Listener, error)
+	Listen(protocolID protocol.ID) (net.Listener, error)
 
-	Dial(ctx context.Context, protocolID ProtocolID, node *node.Node) (net.Conn, error)
+	Dial(ctx context.Context, protocolID protocol.ID, node *node.Node) (net.Conn, error)
 }

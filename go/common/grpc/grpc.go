@@ -23,6 +23,7 @@ import (
 
 	cmnTLS "github.com/oasisprotocol/oasis-core/go/common/crypto/tls"
 	"github.com/oasisprotocol/oasis-core/go/common/grpc/auth"
+	"github.com/oasisprotocol/oasis-core/go/common/grpc/p2p"
 	"github.com/oasisprotocol/oasis-core/go/common/identity"
 	"github.com/oasisprotocol/oasis-core/go/common/logging"
 	"github.com/oasisprotocol/oasis-core/go/common/service"
@@ -569,6 +570,11 @@ func NewServer(config *ServerConfig) (*Server, error) {
 		cfg := listenerConfig{factory: config.ListenerFactory}
 		listenerParams = []listenerConfig{cfg}
 		clientAuthType = tls.RequestClientCert
+
+		sOpts = append(sOpts, grpc.Creds(p2p.NewCredentials()))
+
+		// XXX
+		config.Identity = nil
 	} else if config.Path == "" {
 		// Public TCP server.
 		cfg := listenerConfig{

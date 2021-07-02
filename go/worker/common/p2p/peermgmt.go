@@ -16,9 +16,9 @@ import (
 
 	cmnBackoff "github.com/oasisprotocol/oasis-core/go/common/backoff"
 	"github.com/oasisprotocol/oasis-core/go/common/crypto/hash"
-	"github.com/oasisprotocol/oasis-core/go/common/crypto/signature"
 	"github.com/oasisprotocol/oasis-core/go/common/logging"
 	"github.com/oasisprotocol/oasis-core/go/common/node"
+	"github.com/oasisprotocol/oasis-core/go/common/p2p"
 	consensus "github.com/oasisprotocol/oasis-core/go/consensus/api"
 )
 
@@ -84,7 +84,7 @@ func (mgr *PeerManager) SetNodes(nodes []*node.Node) {
 
 	newNodes := make(map[core.PeerID]*node.Node)
 	for _, node := range nodes {
-		peerID, err := publicKeyToPeerID(node.P2P.ID)
+		peerID, err := p2p.PublicKeyToPeerID(node.P2P.ID)
 		if err != nil {
 			mgr.logger.Warn("error while getting peer ID from public key, skipping",
 				"err", err,
@@ -120,7 +120,7 @@ func (mgr *PeerManager) SetNodes(nodes []*node.Node) {
 
 // UpdateNode upserts a node into the gossipsub network.
 func (mgr *PeerManager) UpdateNode(node *node.Node) error {
-	peerID, err := publicKeyToPeerID(node.P2P.ID)
+	peerID, err := p2p.PublicKeyToPeerID(node.P2P.ID)
 	if err != nil {
 		return fmt.Errorf("worker/common/p2p/peermgr: failed to get peer ID from public key: %w", err)
 	}
@@ -336,26 +336,12 @@ func (p *p2pPeer) connectWorker(mgr *PeerManager, peerID core.PeerID) {
 	}
 }
 
-func publicKeyToPeerID(pk signature.PublicKey) (core.PeerID, error) {
-	pubKey, err := publicKeyToPubKey(pk)
-	if err != nil {
-		return "", err
-	}
-
-	id, err := peer.IDFromPublicKey(pubKey)
-	if err != nil {
-		return "", err
-	}
-
-	return id, nil
-}
-
 func nodeToAddrInfo(node *node.Node) (*peer.AddrInfo, error) {
 	var (
 		ai  peer.AddrInfo
 		err error
 	)
-	if ai.ID, err = publicKeyToPeerID(node.P2P.ID); err != nil {
+	if ai.ID, err = p2p.PublicKeyToPeerID(node.P2P.ID); err != nil {
 		return nil, fmt.Errorf("failed to extract public key from node P2P ID: %w", err)
 	}
 	for _, nodeAddr := range node.P2P.Addresses {

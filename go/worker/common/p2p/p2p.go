@@ -13,7 +13,6 @@ import (
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/libp2p/go-libp2p-core/transport"
-	gostream "github.com/libp2p/go-libp2p-gostream"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	pb "github.com/libp2p/go-libp2p-pubsub/pb"
 	"github.com/multiformats/go-multiaddr"
@@ -157,25 +156,20 @@ func (p *P2P) RegisterHandler(runtimeID common.Namespace, handler Handler) {
 	}
 }
 
-func (p *P2P) Listen(protocolID p2p.ProtocolID) (net.Listener, error) {
-	return gostream.Listen(p.host, protocol.ID(protocolID))
+func (p *P2P) Listen(protocolID protocol.ID) (net.Listener, error) {
+	return p2p.Listen(p.host, protocolID)
 }
 
-func (p *P2P) Dial(ctx context.Context, protocolID p2p.ProtocolID, node *node.Node) (net.Conn, error) {
+func (p *P2P) Dial(ctx context.Context, protocolID protocol.ID, node *node.Node) (net.Conn, error) {
 	if p == nil {
 		return nil, fmt.Errorf("p2p not available")
 	}
 
-	peerID, err := publicKeyToPeerID(node.P2P.ID)
-	if err != nil {
-		return nil, fmt.Errorf("worker/common/p2p: failed to determine peer ID for node %s: %w", node.ID, err)
-	}
-
-	if err = p.UpdateNode(node); err != nil {
+	if err := p.UpdateNode(node); err != nil {
 		return nil, fmt.Errorf("worker/common/p2p: failed to update peer: %w", err)
 	}
 
-	return gostream.Dial(ctx, p.host, peerID, protocol.ID(protocolID))
+	return p2p.Dial(ctx, p.host, protocolID, node)
 }
 
 func (p *P2P) handleConnection(conn core.Conn) {
@@ -226,7 +220,7 @@ func New(ctx context.Context, identity *identity.Identity, consensus consensus.B
 	host, err := libp2p.New(
 		ctx,
 		libp2p.ListenAddrs(sourceMultiAddr),
-		libp2p.Identity(signerToPrivKey(identity.P2PSigner)),
+		libp2p.Identity(p2p.WrapSigner(identity.P2PSigner)),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("worker/common/p2p: failed to initialize libp2p host: %w", err)

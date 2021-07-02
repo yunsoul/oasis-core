@@ -3,6 +3,8 @@ package p2p
 import (
 	"errors"
 
+	core "github.com/libp2p/go-libp2p-core"
+	"github.com/libp2p/go-libp2p-core/peer"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 	libp2pCryptoPb "github.com/libp2p/go-libp2p-core/crypto/pb"
 
@@ -40,7 +42,7 @@ func (s *p2pSigner) Sign(msg []byte) ([]byte, error) {
 }
 
 func (s *p2pSigner) GetPublic() libp2pCrypto.PubKey {
-	pubKey, err := publicKeyToPubKey(s.signer.Public())
+	pubKey, err := PublicKeyToPubKey(s.signer.Public())
 	if err != nil {
 		panic(err)
 	}
@@ -48,13 +50,15 @@ func (s *p2pSigner) GetPublic() libp2pCrypto.PubKey {
 	return pubKey
 }
 
-func signerToPrivKey(signer signature.Signer) libp2pCrypto.PrivKey {
+// WrapSigner wraps an signature.Signer to be usable as a signer for the P2P subsystem.
+func WrapSigner(signer signature.Signer) libp2pCrypto.PrivKey {
 	return &p2pSigner{
 		signer: signer,
 	}
 }
 
-func pubKeyToPublicKey(pubKey libp2pCrypto.PubKey) (signature.PublicKey, error) {
+// PubKeyToPublicKey converts a libp2p PubKey into a signature.PublicKey.
+func PubKeyToPublicKey(pubKey libp2pCrypto.PubKey) (signature.PublicKey, error) {
 	var pk signature.PublicKey
 	if pubKey.Type() != libp2pCrypto.Ed25519 {
 		return pk, errCryptoNotSupported
@@ -72,7 +76,8 @@ func pubKeyToPublicKey(pubKey libp2pCrypto.PubKey) (signature.PublicKey, error) 
 	return pk, nil
 }
 
-func publicKeyToPubKey(pk signature.PublicKey) (libp2pCrypto.PubKey, error) {
+// PublicKeyToPubKey converts a signature.PublicKey into a libp2p PubKey.
+func PublicKeyToPubKey(pk signature.PublicKey) (libp2pCrypto.PubKey, error) {
 	return &libp2pPublicKey{
 		inner: pk,
 	}, nil
@@ -116,6 +121,30 @@ func unmarshalPublicKey(data []byte) (libp2pCrypto.PubKey, error) {
 	return &libp2pPublicKey{
 		inner: inner,
 	}, nil
+}
+
+// PeerIDToPublicKey converts a libp2p2 PeerID into a signature.PublicKey.
+func PeerIDToPublicKey(peerID core.PeerID) (signature.PublicKey, error) {
+	pk, err := peerID.ExtractPublicKey()
+	if err != nil {
+		return signature.PublicKey{}, err
+	}
+	return PubKeyToPublicKey(pk)
+}
+
+// PublicKeyToPeerID converts a signature.PublicKey into a libp2p PeerID.
+func PublicKeyToPeerID(pk signature.PublicKey) (core.PeerID, error) {
+	pubKey, err := PublicKeyToPubKey(pk)
+	if err != nil {
+		return "", err
+	}
+
+	id, err := peer.IDFromPublicKey(pubKey)
+	if err != nil {
+		return "", err
+	}
+
+	return id, nil
 }
 
 func init() {

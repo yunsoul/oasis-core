@@ -13,6 +13,7 @@ import (
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 
 	"github.com/oasisprotocol/oasis-core/go/common"
+	"github.com/oasisprotocol/oasis-core/go/common/p2p"
 	cmnBackoff "github.com/oasisprotocol/oasis-core/go/common/backoff"
 	"github.com/oasisprotocol/oasis-core/go/common/cbor"
 	"github.com/oasisprotocol/oasis-core/go/common/crypto/signature"
@@ -96,7 +97,7 @@ func (h *topicHandler) topicMessageValidator(ctx context.Context, unused core.Pe
 		"received_from", envelope.ReceivedFrom,
 	)
 
-	id, err := peerIDToPublicKey(peerID)
+	id, err := p2p.PeerIDToPublicKey(peerID)
 	if err != nil {
 		h.logger.Error("error while extracting public key from peer ID",
 			"err", err,
@@ -326,12 +327,4 @@ func newTopicHandler(p *P2P, runtimeID common.Namespace, handlers []Handler) (st
 
 	go h.pendingMessagesWorker()
 	return topicID, h, nil
-}
-
-func peerIDToPublicKey(peerID core.PeerID) (signature.PublicKey, error) {
-	pk, err := peerID.ExtractPublicKey()
-	if err != nil {
-		return signature.PublicKey{}, err
-	}
-	return pubKeyToPublicKey(pk)
 }
