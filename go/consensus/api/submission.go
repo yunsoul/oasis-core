@@ -170,6 +170,10 @@ func (m *submissionManager) signAndSubmitTx(ctx context.Context, signer signatur
 
 // Implements SubmissionManager.
 func (m *submissionManager) SignAndSubmitTx(ctx context.Context, signer signature.Signer, tx *transaction.Transaction) error {
+	// Set context timeout so that retrying is canceled in at most maxSubmissionRetryElapsedTime.
+	ctx, cancel := context.WithTimeout(ctx, maxSubmissionRetryElapsedTime)
+	defer cancel()
+
 	sched := cmnBackoff.NewExponentialBackOff()
 	sched.MaxInterval = maxSubmissionRetryInterval
 	sched.MaxElapsedTime = maxSubmissionRetryElapsedTime
