@@ -33,7 +33,7 @@ var (
 	}
 
 	// Timeout after each governance workload iteration.
-	iterationTimeout         = 2 * time.Second
+	iterationTimeout         = 10 * time.Second
 	errUnexpectedGovTxResult = fmt.Errorf("unexpected governance tx result")
 	numProposerAccounts      = 10
 	// How likely voters should vote YES for the proposal made by i'th proposer.
