@@ -24,12 +24,17 @@ import (
 	"github.com/oasisprotocol/oasis-core/go/oasis-node/cmd/storage"
 )
 
-//= Cobra is both a library for creating powerful modern CLI applications
+/*---------------------------------------------------------
+Cobra is both a library for creating powerful modern CLI applications
+https://github.com/spf13/cobra
+https://pkg.go.dev/github.com/spf13/cobra
+*----------------------------------------------------------/
+
 var rootCmd = &cobra.Command{
-	Use:     "oasis-node",
-	Short:   "Oasis Node",
+	Use:     "oasis-node",	// one-line usage message
+	Short:   "Oasis Node",	// short description shown in the 'help' output.
 	Version: version.SoftwareVersion,
-	Run:     node.Run,
+	Run:     node.Run,	// the actual work function. 
 }
 
 // RootCommand returns the root (top level) cobra.Command.
