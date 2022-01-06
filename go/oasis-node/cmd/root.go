@@ -34,7 +34,7 @@ var rootCmd = &cobra.Command{
 	Use:     "oasis-node",	// one-line usage message
 	Short:   "Oasis Node",	// short description shown in the 'help' output.
 	Version: version.SoftwareVersion,
-	Run:     node.Run,	// the actual work function. 
+	Run:     node.Run,	// the actual work function. func(cmd *Command, args []string)
 }
 
 // RootCommand returns the root (top level) cobra.Command.
@@ -71,6 +71,7 @@ Go toolchain version: {{ toolchain }}
 }
 
 func init() {
+	// OnInitialize sets the passed functions to be run when each command's Execute method is called.
 	cobra.OnInitialize(cmdCommon.InitConfig)
 	initVersions()
 
